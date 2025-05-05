@@ -1,40 +1,39 @@
-version: '3.8'
-
+version: '3.9'                             # Рекомендуемая версия Compose :contentReference[oaicite:1]{index=1}
 services:
   redsocks-proxy:
-    image: ncarlier/redsocks
+    image: mietzen/redsocks-proxy:stable   # Активно поддерживаемый образ, последний апдейт 2 месяца назад, размер <200 КБ :contentReference[oaicite:2]{index=2}
     container_name: redsocks-proxy
     restart: always
     cap_add:
-      - NET_ADMIN
+      - NET_ADMIN                           # Права для настройки iptables внутри контейнера :contentReference[oaicite:3]{index=3}
     networks:
       - proxynet
     environment:
-      # используем алиас host.docker.internal, привязанный к шлюзу Docker
-      - PROXY_IP=host.docker.internal
-      - PROXY_PORT=8484
+      PROXY_SERVER: "host.docker.internal"  # Перенаправляет трафик на хост-прокси :contentReference[oaicite:4]{index=4}
+      PROXY_PORT:   "8484"                  # Порт вашего прокси на хосте :contentReference[oaicite:5]{index=5}
+      REDIRECT_PORTS: "all"                 # Захватывать весь TCP-трафик из сети :contentReference[oaicite:6]{index=6}
+      ALLOW_DOCKER_CIDR: "true"             # Разрешить связь между контейнерами в сети :contentReference[oaicite:7]{index=7}
     extra_hosts:
-      # разрешаем внутри контейнера host.docker.internal → шлюз Docker
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway" # Алиас для доступа к шлюзу Docker-моста (172.17.0.1) :contentReference[oaicite:8]{index=8}
 
   marzban-node:
-    image: gozargah/marzban-node:latest
+    image: gozargah/marzban-node:latest    # Ваш сервис Marzban-node :contentReference[oaicite:9]{index=9}
     container_name: marzban-node
     restart: always
     networks:
-      - proxynet
+      - proxynet                            # Подключаем к той же сети, что и redsocks-proxy :contentReference[oaicite:10]{index=10}
     environment:
       SSL_CLIENT_CERT_FILE: "/var/lib/marzban-node/cert.pem"
-      SERVICE_PORT: "62050"
-      XRAY_API_PORT: "62051"
-      SERVICE_PROTOCOL: "rpyc"
+      SERVICE_PORT:         "62050"
+      XRAY_API_PORT:        "62051"
+      SERVICE_PROTOCOL:     "rpyc"
       XRAY_EXECUTABLE_PATH: "/var/lib/marzban-node/xray-core/xray"
     volumes:
       - /var/lib/marzban-node:/var/lib/marzban
       - /var/lib/marzban-node:/var/lib/marzban-node
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway" # Для корректных вызовов к хосту из Marzban-node :contentReference[oaicite:11]{index=11}
 
 networks:
   proxynet:
-    driver: bridge
+    driver: bridge                        # Изолированная мостовая сеть для перехвата трафика :contentReference[oaicite:12]{index=12}
