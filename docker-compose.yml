@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  redsocks-proxy:
+    image: ncarlier/redsocks
+    container_name: redsocks-proxy
+    restart: always
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - proxynet
+    environment:
+      # используем алиас host.docker.internal, привязанный к шлюзу Docker
+      - PROXY_IP=host.docker.internal
+      - PROXY_PORT=8484
+    extra_hosts:
+      # разрешаем внутри контейнера host.docker.internal → шлюз Docker
+      - "host.docker.internal:host-gateway"
+
+  marzban-node:
+    image: gozargah/marzban-node:latest
+    container_name: marzban-node
+    restart: always
+    networks:
+      - proxynet
+    environment:
+      SSL_CLIENT_CERT_FILE: "/var/lib/marzban-node/cert.pem"
+      SERVICE_PORT: "62050"
+      XRAY_API_PORT: "62051"
+      SERVICE_PROTOCOL: "rpyc"
+      XRAY_EXECUTABLE_PATH: "/var/lib/marzban-node/xray-core/xray"
+    volumes:
+      - /var/lib/marzban-node:/var/lib/marzban
+      - /var/lib/marzban-node:/var/lib/marzban-node
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  proxynet:
+    driver: bridge
